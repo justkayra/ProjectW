@@ -43,6 +43,7 @@ public class TransformationService {
             StringTokenizer st = new StringTokenizer(sourceText, " ");
             while (st.hasMoreTokens()) {
                 String value = st.nextToken();
+                value = value.replace(",", "").replace(".","").replace("@[", "").replace("]","");
                 WordType wordType = datamuseService.getWordType(value);
                 if (wordType == WordType.ADJECTIVE) {
                     Adjective adjective = null;

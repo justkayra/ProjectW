@@ -33,7 +33,7 @@ public class DatamuseService {
     }
 
     public WordType getWordType(String word) {
-       word = word.replace(",", "");
+
        LOGGER.info("check word  \"" + word + "\"");
        WordType wordType = cache.get(word);
        if (wordType == null) {
