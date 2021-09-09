@@ -1,20 +1,17 @@
 package com.semantyca.model;
 
+import com.semantyca.dto.constant.WordType;
 import com.semantyca.localization.LanguageCode;
 import com.semantyca.model.embedded.RLSEntry;
 import com.semantyca.model.user.AnonymousUser;
 
 import java.time.ZonedDateTime;
-import java.util.ArrayList;
-import java.util.List;
 import java.util.UUID;
 
-public class Adjective extends SecureDataEntity<UUID> {
+public class Word extends SecureDataEntity<UUID> {
     private String value;
     private LanguageCode language;
-    private int emphasisRank;
-    private int formalRank;
-    private List<Adjective> associations = new ArrayList<>();
+    private WordType type;
 
     public String getValue() {
         return value;
@@ -32,32 +29,12 @@ public class Adjective extends SecureDataEntity<UUID> {
         this.language = language;
     }
 
-    public int getEmphasisRank() {
-        return emphasisRank;
+    public WordType getType() {
+        return type;
     }
 
-    public void setEmphasisRank(int emphasisRank) {
-        this.emphasisRank = emphasisRank;
-    }
-
-    public int getFormalRank() {
-        return formalRank;
-    }
-
-    public void setFormalRank(int formalRank) {
-        this.formalRank = formalRank;
-    }
-
-    public void setAssociations(List<Adjective> associations) {
-        this.associations = associations;
-    }
-
-    public List<Adjective> getAssociations() {
-        return associations;
-    }
-
-    public void addAssociation(Adjective adjective) {
-        associations.add(adjective);
+    public void setType(WordType type) {
+        this.type = type;
     }
 
     public static class Builder {
@@ -68,10 +45,7 @@ public class Adjective extends SecureDataEntity<UUID> {
         private String title = "";
         private String value;
         private LanguageCode language = LanguageCode.ENG;
-        private int emphasisRank;
-        private int formalRank;
-        private List<Adjective> associations = new ArrayList<>();
-
+        private WordType type;
 
         public Builder setRegDate(ZonedDateTime regDate) {
             this.regDate = regDate;
@@ -87,7 +61,6 @@ public class Adjective extends SecureDataEntity<UUID> {
             this.lastModifier = lastModifier;
             return this;
         }
-
 
         public Builder setTitle(String title) {
             this.title = title;
@@ -109,38 +82,26 @@ public class Adjective extends SecureDataEntity<UUID> {
             return this;
         }
 
-        public Builder setEmphasisRank(int emphasisRank) {
-            this.emphasisRank = emphasisRank;
+        public Builder setType(WordType type) {
+            this.type = type;
             return this;
         }
 
-        public Builder setFormalRank(int formalRank) {
-            this.formalRank = formalRank;
-            return this;
-        }
-
-        public Builder setAssociations(List<Adjective> associations) {
-            this.associations = associations;
-            return this;
-        }
-
-        public Adjective build() {
-            Adjective adjective = new Adjective();
-            adjective.setRegDate(regDate);
-            adjective.setAuthor(author);
+        public Word build() {
+            Word entity = new Word();
+            entity.setRegDate(regDate);
+            entity.setAuthor(author);
             RLSEntry rlsEntry = new RLSEntry();
             rlsEntry.allowEdit();
             rlsEntry.setReader(author);
-            adjective.addReader(rlsEntry);
-            adjective.setTitle(title);
-            adjective.setValue(value);
-            adjective.setLanguage(language);
-            adjective.setEmphasisRank(emphasisRank);
-            adjective.setFormalRank(formalRank);
-            adjective.setLastModifiedDate(lastModifiedDate);
-            adjective.setLastModifier(lastModifier);
-            adjective.setAssociations(associations);
-            return adjective;
+            entity.setLastModifiedDate(lastModifiedDate);
+            entity.setLastModifier(lastModifier);
+            entity.addReader(rlsEntry);
+            entity.setTitle(title);
+            entity.setValue(value);
+            entity.setLanguage(language);
+            entity.setType(type);
+            return entity;
         }
     }
 

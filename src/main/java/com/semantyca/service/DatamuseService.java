@@ -16,7 +16,7 @@ import java.util.List;
 @ApplicationScoped
 public class DatamuseService {
     private static final Logger LOGGER = LoggerFactory.getLogger("DatamuseService");
-    private static final HashMap<String, WordType> cache = new HashMap();
+    private static final HashMap<String, WordType> cache;
 
     @RestClient
     DatamuseConnection datamuseConnection;
@@ -34,9 +34,10 @@ public class DatamuseService {
 
     public WordType getWordType(String word) {
 
-       LOGGER.info("check word  \"" + word + "\"");
+
        WordType wordType = cache.get(word);
        if (wordType == null) {
+           LOGGER.info("request for:  \"" + word + "\"");
            List<DatamuseWordDTO> datamuseWordDTOList = datamuseConnection.getWordType(word, "p");
            if (datamuseWordDTOList.size() > 0) {
                DatamuseWordDTO datamuseWordDTO = datamuseWordDTOList.get(0);
@@ -54,8 +55,18 @@ public class DatamuseService {
                return WordType.UNKNOWN;
            }
        } else {
-           LOGGER.info("word was taken from cache");
            return wordType;
        }
+    }
+
+    static {
+        cache = new HashMap<>();
+        cache.put("a", WordType.ARTICLE);
+        cache.put("is", WordType.VERB);
+        cache.put("it", WordType.UNKNOWN);
+        cache.put("or", WordType.UNKNOWN);
+        cache.put("and", WordType.UNKNOWN);
+        cache.put("that", WordType.UNKNOWN);
+        cache.put("will", WordType.UNKNOWN);
     }
 }

@@ -1,3 +1,16 @@
+CREATE TABLE words
+(
+	id uuid DEFAULT uuid_generate_v4() PRIMARY KEY,
+	reg_date TIMESTAMP with TIME zone not null,
+	title VARCHAR(255),
+	author INT not null,
+	last_mod_date TIMESTAMP with TIME zone not null,
+	last_mod_user INT not null,
+	value VARCHAR(100) UNIQUE,
+	language VARCHAR(100),
+	type INT NOT NULL DEFAULT 0
+);
+
 CREATE TABLE adjectives
 (
 	id uuid DEFAULT uuid_generate_v4() PRIMARY KEY,

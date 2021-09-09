@@ -2,6 +2,7 @@ package com.semantyca.service;
 
 import com.semantyca.dto.AdjectiveDTO;
 import com.semantyca.dto.DatamuseWordDTO;
+import com.semantyca.dto.SlateTextElementDTO;
 import com.semantyca.dto.TransformationRequestDTO;
 import com.semantyca.dto.constant.EmphasisType;
 import com.semantyca.dto.constant.WordType;
@@ -15,9 +16,7 @@ import org.slf4j.LoggerFactory;
 
 import javax.enterprise.context.ApplicationScoped;
 import javax.inject.Inject;
-import java.util.List;
-import java.util.Optional;
-import java.util.StringTokenizer;
+import java.util.*;
 import java.util.stream.Collectors;
 
 @ApplicationScoped
@@ -37,36 +36,64 @@ public class TransformationService {
         this.datamuseService = datamuseService;
     }
 
-    public String process(TransformationRequestDTO dto) throws DocumentExists {
+    public List<SlateTextElementDTO> process(TransformationRequestDTO dto) throws DocumentExists {
+        List<SlateTextElementDTO> elements = new ArrayList<>();
         String sourceText = dto.getSourceText();
+        sourceText = sourceText.replace(" ", "~&#32;~").replace(",", "~&#44;~").replace(".", "~&#46;~");
         if (dto.getEmphasis() == EmphasisType.RANDOM) {
-            StringTokenizer st = new StringTokenizer(sourceText, " ");
-            while (st.hasMoreTokens()) {
-                String value = st.nextToken();
-                value = value.replace(",", "").replace(".","").replace("@[", "").replace("]","");
-                WordType wordType = datamuseService.getWordType(value);
-                if (wordType == WordType.ADJECTIVE) {
-                    Adjective adjective = null;
-                    Optional<Adjective> val = adjectiveRepository.findByValue(value);
-                    if (val.isEmpty()) {
-                        adjective = persistAdjective(value);
-                    } else {
-                        adjective = val.get();
-                        List<Adjective> associationList = adjective.getAssociations();
-                        if (associationList.size() == 0) {
-                            updateAdjectiveAssociations(adjective);
+            String[] fields = sourceText.split("~");
+            Mode mode = Mode.SKIPPING;
+            StringBuilder builder = new StringBuilder();
+            for (int i = 0; i < fields.length; i++) {
+                String value = fields[i];
+                if (value.length() > 0) {
+                    WordType wordType = datamuseService.getWordType(value);
+                    if (wordType == WordType.ADJECTIVE) {
+                        if (mode != Mode.REPLACING) {
+                            SlateTextElementDTO element = new SlateTextElementDTO();
+                            element.setText(builder.toString());
+                            elements.add(element);
+                            builder = new StringBuilder();
                         }
-                    }
-                    List<Adjective> associationList = adjective.getAssociations();
-                    if (associationList.size() > 0) {
-                        int randomIndex = NumberUtil.getRandomNumber(0, associationList.size() - 1);
-                        String replacement = associationList.get(randomIndex).getValue();
-                        sourceText = sourceText.replace(value, replacement);
+                        mode = Mode.REPLACING;
+                        Adjective adjective = null;
+                        Optional<Adjective> val = adjectiveRepository.findByValue(value);
+                        if (val.isEmpty()) {
+                            adjective = persistAdjective(value);
+                        } else {
+                            adjective = val.get();
+                            List<Adjective> associationList = adjective.getAssociations();
+                            if (associationList.size() == 0) {
+                                updateAdjectiveAssociations(adjective);
+                            }
+                        }
+                        List<Adjective> associationList = adjective.getAssociations();
+                        if (associationList.size() > 0) {
+                            int randomIndex = NumberUtil.getRandomNumber(0, associationList.size() - 1);
+                            String replacement = associationList.get(randomIndex).getValue();
+                            builder.append(replacement);
+                        }
+                    } else {
+                        if (mode != Mode.SKIPPING) {
+                            SlateTextElementDTO element = new SlateTextElementDTO();
+                            element.setBold(true);
+                            element.setText(builder.toString());
+                            elements.add(element);
+                            builder = new StringBuilder();
+                        }
+                        mode = Mode.SKIPPING;
+                        builder.append(value);
                     }
                 }
             }
+            SlateTextElementDTO element = new SlateTextElementDTO();
+            element.setText(builder.toString());
+            if (mode == Mode.REPLACING) {
+                element.setBold(true);
+            }
+            elements.add(element);
         }
-        return sourceText;
+        return elements;
     }
 
     private Adjective persistAdjective(String value) throws DocumentExists {
@@ -81,6 +108,10 @@ public class TransformationService {
         List<DatamuseWordDTO> resp = datamuseService.getWord(entity.getValue());
         entity.setAssociations(resp.stream().map(v -> (new Adjective.Builder().setValue(v.getWord())).build()).collect(Collectors.toList()));
         adjectiveRepository.update(entity);
+    }
+
+    enum Mode {
+        REPLACING, SKIPPING;
     }
 
 }
