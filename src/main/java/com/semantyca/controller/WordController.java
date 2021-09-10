@@ -24,14 +24,14 @@ public class WordController {
     @Path("/")
     @Produces(MediaType.APPLICATION_JSON)
     public Multi<Word> getWords() {
-        return wordService.get();
+        return wordService.getAll();
     }
 
     @GET
-    @Path("/{id}")
+    @Path("/{word}")
     @Produces(MediaType.APPLICATION_JSON)
-    public Uni<Word> getWord(@PathParam("id") String id) {
-        return wordService.get(id);
+    public Word getWord(@PathParam("word") String word) {
+        return wordService.get(word).get();
     }
 
     @POST

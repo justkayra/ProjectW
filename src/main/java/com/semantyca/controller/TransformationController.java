@@ -33,11 +33,6 @@ public class TransformationController {
         PageOutcome outcome = new PageOutcome();
         List<SlateTextElementDTO> slateTextElementDTOList = transformationService.process(dto);
         SlateDTO slateDTO = new SlateDTO();
-        //List<SlateTextElementDTO> slateTextElementDTOList = new ArrayList<>();
-        //SlateTextElementDTO elementDTO = new SlateTextElementDTO();
-        //elementDTO.setText(res);
-        //elementDTO.setBold(true);
-        //slateTextElementDTOList.add(elementDTO);
         slateDTO.setType("paragraph");
         slateDTO.setChildren(slateTextElementDTOList);
         List<SlateDTO> slateDTOList = new ArrayList<>();

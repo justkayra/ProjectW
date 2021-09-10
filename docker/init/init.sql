@@ -31,7 +31,18 @@ CREATE TABLE adj_links
 (
    primary_adj_id uuid NOT NULL ,
    related_adj_id uuid NOT NULL,
+   emphasisRank INT NOT NULL DEFAULT 0,
    PRIMARY KEY (primary_adj_id, related_adj_id),
+   FOREIGN KEY(primary_adj_id) REFERENCES adjectives (id),
+   FOREIGN KEY(related_adj_id) REFERENCES adjectives (id)
+);
+
+CREATE TABLE adj_formal_rank_links
+(
+   primary_adj_id uuid NOT NULL ,
+   related_adj_id uuid NOT NULL,
+   formalRank INT NOT NULL DEFAULT 0,
+   PRIMARY KEY (primary_adj_id, related_adj_id, formalRank),
    FOREIGN KEY(primary_adj_id) REFERENCES adjectives (id),
    FOREIGN KEY(related_adj_id) REFERENCES adjectives (id)
 );

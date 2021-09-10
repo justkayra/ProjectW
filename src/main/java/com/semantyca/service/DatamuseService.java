@@ -3,29 +3,43 @@ package com.semantyca.service;
 import com.semantyca.client.DatamuseConnection;
 import com.semantyca.dto.DatamuseWordDTO;
 import com.semantyca.dto.constant.WordType;
+import com.semantyca.model.Word;
 import com.semantyca.repository.AdjectiveRepository;
+import com.semantyca.repository.WordRepository;
+import io.smallrye.mutiny.Uni;
+import io.vertx.mutiny.pgclient.PgPool;
 import org.eclipse.microprofile.rest.client.inject.RestClient;
 import org.jdbi.v3.core.Jdbi;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import javax.enterprise.context.ApplicationScoped;
+import javax.inject.Inject;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Optional;
+import java.util.UUID;
 
 @ApplicationScoped
 public class DatamuseService {
     private static final Logger LOGGER = LoggerFactory.getLogger("DatamuseService");
-    private static final HashMap<String, WordType> cache;
+    private static final HashMap<String, WordType> cache = new HashMap<>();
 
     @RestClient
     DatamuseConnection datamuseConnection;
 
     private AdjectiveRepository adjectiveRepository;
 
+    private WordRepository wordRepository;
 
-    public DatamuseService(Jdbi jdbi) {
+    private WordService wordService;
+
+    @Inject
+    public DatamuseService(Jdbi jdbi, PgPool dbClient, WordService wordService) {
         adjectiveRepository = new AdjectiveRepository(jdbi);
+        wordRepository = new WordRepository(jdbi, dbClient);
+        this.wordService = wordService;
+
     }
     public List<DatamuseWordDTO> getWord(String word) {
         LOGGER.info("fetch word  \"" + word + "\"");
@@ -33,40 +47,35 @@ public class DatamuseService {
     }
 
     public WordType getWordType(String word) {
-
-
        WordType wordType = cache.get(word);
        if (wordType == null) {
            LOGGER.info("request for:  \"" + word + "\"");
-           List<DatamuseWordDTO> datamuseWordDTOList = datamuseConnection.getWordType(word, "p");
-           if (datamuseWordDTOList.size() > 0) {
-               DatamuseWordDTO datamuseWordDTO = datamuseWordDTOList.get(0);
-               List<String> tags = datamuseWordDTO.getTags();
-               if (tags != null) {
-                   WordType newWordType = WordType.getType(datamuseWordDTO.getTags().get(0).toLowerCase());
-                   cache.put(word, newWordType);
-                   return newWordType;
+           Optional<Word> wordOptional = wordService.get(word);
+           if (wordOptional.isPresent()){
+                wordType = wordOptional.get().getType();
+               cache.put(word, wordType);
+           } else {
+               List<DatamuseWordDTO> datamuseWordDTOList = datamuseConnection.getWordType(word, "p");
+               if (datamuseWordDTOList.size() > 0) {
+                   DatamuseWordDTO datamuseWordDTO = datamuseWordDTOList.get(0);
+                   List<String> tags = datamuseWordDTO.getTags();
+                   if (tags != null) {
+                       wordType = WordType.getType(datamuseWordDTO.getTags().get(0).toLowerCase());
+                       Uni<UUID> id = wordService.save(word, wordType);
+                       id.subscribe().with(resp -> System.out.println("Success: " + resp));
+                       System.out.println("word = " + id);
+                       cache.put(word, wordType);
+                       return wordType;
+                   } else {
+                       cache.put(word, WordType.UNKNOWN);
+                       return WordType.UNKNOWN;
+                   }
                } else {
                    cache.put(word, WordType.UNKNOWN);
                    return WordType.UNKNOWN;
                }
-           } else {
-               cache.put(word, WordType.UNKNOWN);
-               return WordType.UNKNOWN;
            }
-       } else {
-           return wordType;
        }
-    }
-
-    static {
-        cache = new HashMap<>();
-        cache.put("a", WordType.ARTICLE);
-        cache.put("is", WordType.VERB);
-        cache.put("it", WordType.UNKNOWN);
-        cache.put("or", WordType.UNKNOWN);
-        cache.put("and", WordType.UNKNOWN);
-        cache.put("that", WordType.UNKNOWN);
-        cache.put("will", WordType.UNKNOWN);
+        return wordType;
     }
 }

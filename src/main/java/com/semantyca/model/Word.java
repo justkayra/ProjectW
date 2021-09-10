@@ -45,7 +45,7 @@ public class Word extends SecureDataEntity<UUID> {
         private String title = "";
         private String value;
         private LanguageCode language = LanguageCode.ENG;
-        private WordType type;
+        private WordType type = WordType.UNKNOWN;
 
         public Builder setRegDate(ZonedDateTime regDate) {
             this.regDate = regDate;

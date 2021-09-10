@@ -39,7 +39,11 @@ public class TransformationService {
     public List<SlateTextElementDTO> process(TransformationRequestDTO dto) throws DocumentExists {
         List<SlateTextElementDTO> elements = new ArrayList<>();
         String sourceText = dto.getSourceText();
-        sourceText = sourceText.replace(" ", "~&#32;~").replace(",", "~&#44;~").replace(".", "~&#46;~");
+        sourceText = sourceText
+                .replace("\uFEFF", "")
+                .replace(" ", "~&#32;~")
+                .replace(",", "~&#44;~")
+                .replace(".", "~&#46;~");
         if (dto.getEmphasis() == EmphasisType.RANDOM) {
             String[] fields = sourceText.split("~");
             Mode mode = Mode.SKIPPING;
@@ -50,10 +54,13 @@ public class TransformationService {
                     WordType wordType = datamuseService.getWordType(value);
                     if (wordType == WordType.ADJECTIVE) {
                         if (mode != Mode.REPLACING) {
-                            SlateTextElementDTO element = new SlateTextElementDTO();
-                            element.setText(builder.toString());
-                            elements.add(element);
-                            builder = new StringBuilder();
+                            String t = builder.toString();
+                            if (!t.equals("")) {
+                                SlateTextElementDTO element = new SlateTextElementDTO();
+                                element.setText(builder.toString());
+                                elements.add(element);
+                                builder = new StringBuilder();
+                            }
                         }
                         mode = Mode.REPLACING;
                         Adjective adjective = null;
@@ -72,14 +79,19 @@ public class TransformationService {
                             int randomIndex = NumberUtil.getRandomNumber(0, associationList.size() - 1);
                             String replacement = associationList.get(randomIndex).getValue();
                             builder.append(replacement);
+                        } else {
+                            builder.append(value);
                         }
                     } else {
                         if (mode != Mode.SKIPPING) {
-                            SlateTextElementDTO element = new SlateTextElementDTO();
-                            element.setBold(true);
-                            element.setText(builder.toString());
-                            elements.add(element);
-                            builder = new StringBuilder();
+                            String t = builder.toString();
+                            if (!t.equals("")) {
+                                SlateTextElementDTO element = new SlateTextElementDTO();
+                                element.setBold(true);
+                                element.setText(builder.toString());
+                                elements.add(element);
+                                builder = new StringBuilder();
+                            }
                         }
                         mode = Mode.SKIPPING;
                         builder.append(value);
@@ -106,8 +118,12 @@ public class TransformationService {
 
     private void updateAdjectiveAssociations(Adjective entity) throws DocumentExists {
         List<DatamuseWordDTO> resp = datamuseService.getWord(entity.getValue());
-        entity.setAssociations(resp.stream().map(v -> (new Adjective.Builder().setValue(v.getWord())).build()).collect(Collectors.toList()));
-        adjectiveRepository.update(entity);
+        if (resp.size() > 0) {
+            entity.setAssociations(resp.stream().map(v -> (new Adjective.Builder().setValue(v.getWord())).build()).collect(Collectors.toList()));
+            adjectiveRepository.update(entity);
+        } else {
+            LOGGER.warn("There is no associations for \"" + entity.getValue() + "\"");
+        }
     }
 
     enum Mode {
