@@ -11,7 +11,6 @@ public class DocumentOutcome extends AbstractOutcome<DocumentOutcome> {
 
     public DocumentOutcome setPayload(DataEntity entity) {
         type = OutcomeType.DOCUMENT;
-        identifier = entity.getId().toString();
         payloads.put(entity.getEntityType(), entity);
         return this;
     }

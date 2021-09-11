@@ -10,7 +10,10 @@ public class SlateTextElementDTO {
     }
 
     public void setText(String text) {
-        this.text = text.replace("&#32;", " ").replace("&#44;",",").replace("&#46;",".");
+        this.text = text.replace("&#32;", " ")
+                .replace("&#44;",",")
+                .replace("&#46;",".")
+                .replace("&#34;", "\"");
     }
 
     public boolean isBold() {
@@ -21,5 +24,19 @@ public class SlateTextElementDTO {
         this.bold = bold;
     }
 
+    public static class Builder {
+        public SlateTextElementDTO build(String text) {
+            SlateTextElementDTO dto = new SlateTextElementDTO();
+            dto.setText(text);
+            return dto;
+        }
+
+        public SlateTextElementDTO build(String text, boolean bold) {
+            SlateTextElementDTO dto = new SlateTextElementDTO();
+            dto.setBold(bold);
+            dto.setText(text);
+            return dto;
+        }
+    }
 
 }

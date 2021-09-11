@@ -13,11 +13,8 @@ public interface IOutcome<T> {
 
     String getTitle();
 
-    String getPageName();
-
     Map<String, Object> getPayloads();
 
     T addPayload(PayloadType exception, Object anything);
 
-    T setPageName(String pageName) ;
 }

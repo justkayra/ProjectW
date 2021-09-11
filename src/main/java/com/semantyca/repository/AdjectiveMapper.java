@@ -8,6 +8,7 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.List;
 
+@Deprecated
 public class AdjectiveMapper extends AbstractMapper<Adjective> {
 
     private boolean includeAssociatedWords;

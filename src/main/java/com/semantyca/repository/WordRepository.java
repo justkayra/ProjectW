@@ -1,83 +1,155 @@
 package com.semantyca.repository;
 
-import com.semantyca.dto.constant.WordType;
-import com.semantyca.localization.LanguageCode;
+import com.semantyca.dto.constant.RatingType;
 import com.semantyca.model.Word;
-import io.smallrye.mutiny.Multi;
-import io.smallrye.mutiny.Uni;
-import io.vertx.mutiny.pgclient.PgPool;
-import io.vertx.mutiny.sqlclient.Row;
-import io.vertx.mutiny.sqlclient.RowSet;
-import io.vertx.mutiny.sqlclient.Tuple;
 import org.jdbi.v3.core.Jdbi;
 
 import javax.inject.Inject;
-import java.sql.Date;
-import java.util.ArrayList;
+import javax.transaction.Transactional;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
 public class WordRepository extends AbstractRepository {
 
-    private PgPool client;
-
-    private AdjectiveRepository adjectiveRepository;
-
     private Jdbi jdbi;
 
-
     @Inject
-    public WordRepository(Jdbi jdbi, PgPool client) {
-        this.client = client;
+    public WordRepository(Jdbi jdbi) {
         this.jdbi = jdbi;
+    }
+
+    public Optional<Word> findById(UUID id) {
+        return jdbi.withHandle(handle ->
+                handle.createQuery("SELECT * FROM words a WHERE a.id = '" + id + "'")
+                        .map(new WordMapper(this, true)).findFirst());
     }
 
     public Optional<Word> findByValue(String word) {
         return jdbi.withHandle(handle ->
                 handle.createQuery("SELECT * FROM words a WHERE a.value = '" + word + "'")
-                        .map(new WordMapper()).findFirst());
+                        .map(new WordMapper(this, false)).findFirst());
     }
 
-    public Uni<Word> findByWordAsync(String word) {
-        return client.preparedQuery("SELECT * FROM words WHERE value = $1").execute(Tuple.of(word))
-                .onItem().transform(RowSet::iterator)
-                .onItem().transform(iterator -> iterator.hasNext() ? from(iterator.next()) : null);
+    public List<Word> findAssociatedWord(UUID id) {
+        return jdbi.withHandle(handle ->
+                handle.createQuery("SELECT * FROM word_emphasis_rank_links wel, words w WHERE wel.primary_word_id = '" + id + "' and wel.related_word_id = w.id")
+                        .map(new WordMapper(this, false)).list());
     }
 
-    public Multi<Word> findAllUnrestricted (final int limit, final int offset) {
-        return client.query("SELECT * FROM words").execute()
-                .onItem().transformToMulti(set -> Multi.createFrom().iterable(set))
-                .onItem().transform(WordRepository::from);
-
+    public List<Word> findAllUnrestricted(final int limit, final int offset) {
+        String sql = "SELECT * FROM words LIMIT " + limit + " OFFSET " + offset;
+        if (limit == 0 && offset == 0) {
+            sql = "SELECT * FROM words";
+        }
+        String finalSql = sql;
+        return jdbi.withHandle(handle ->
+                handle.createQuery(finalSql)
+                        .map(new WordMapper(this, true)).list());
     }
 
-    public Uni<UUID> save(Word word) {
-        List columns = new ArrayList();
-        //columns.add(Date.from(word.getRegDate().toInstant()));
-        columns.add(word.getTitle());
-        columns.add(word.getAuthor());
-        //columns.add(Date.from(word.getLastModifiedDate().toInstant()));
-        columns.add(word.getLastModifier());
-        columns.add(word.getValue());
-        columns.add(word.getLanguage());
-        columns.add(word.getType().getCode());
-        Tuple tuple = Tuple.tuple(columns);
-
-        return  client.preparedQuery("INSERT INTO words (reg_date, title, author, last_mod_date, last_mod_user, value, language, type)" +
-                        "VALUES('" + Date.from(word.getRegDate().toInstant()) + "',$1,$2,'" + Date.from(word.getLastModifiedDate().toInstant()) + "',$3,$4,$5,$6) RETURNING id")
-                .execute(tuple)
-                .onItem().transform(pgRowSet -> pgRowSet.iterator().next().get(UUID.class,"id"));
+    @Transactional
+    public Word insert(Word entity) {
+        return jdbi.withHandle(handle -> {
+            Word word = handle.createUpdate("INSERT INTO words (reg_date, title, author, last_mod_date, last_mod_user, value, language, type, obscenity)" +
+                    "VALUES (:regDate, :title, :author, :lastModifiedDate, :lastModifier, :value, :language, :typeCode, :obscenity )")
+                    .bindBean(entity)
+                    .executeAndReturnGeneratedKeys()
+                    .map(new WordMapper(this , true))
+                    .one();
+            for (Word a : entity.getAssociations()) {
+                Optional<Word> associatedOptional = findByValue(a.getValue());
+                if (associatedOptional.isPresent()) {
+                    handle.createUpdate("INSERT INTO word_emphasis_rank_links (primary_word_id, related_word_id)" +
+                            "VALUES (:primary, :related )")
+                            .bind("primary", word.getId())
+                            .bind("related", associatedOptional.get().getId())
+                            .execute();
+                    handle.createUpdate("INSERT INTO word_formality_rank_links (primary_word_id, related_word_id)" +
+                            "VALUES (:primary, :related )")
+                            .bind("primary", word.getId())
+                            .bind("related", associatedOptional.get().getId())
+                            .execute();
+                    //it needs if association has been updated;
+                    word = findById(word.getId()).get();
+                }
+            }
+            return word;
+        });
     }
 
-    private static Word from(Row row) {
-        Word entity = new Word();
-        transferIdUUID(entity, row);
-        transferCommonData(entity, row);
-        entity.setType(WordType.getType(row.getInteger("type")));
-        entity.setValue(row.getString("value"));
-        entity.setLanguage(LanguageCode.valueOf(row.getString("language")));
-        return entity;
+    @Transactional
+    public int updateRates(Word entity, RatingType ratingType, String associatedWord, int rate) {
+        return jdbi.withHandle(handle -> {
+            int result = 0;
+            if (ratingType == RatingType.EMPHASIS){
+                result = handle.createUpdate("UPDATE word_emphasis_rank_links wl SET rank=:emphasisRank WHERE wl.primary_word_id = :id AND related_word_id IN " +
+                        "(SELECT id FROM word_emphasis_rank_links wl, words w WHERE w.value = :associatedWord)")
+                        .bind("emphasisRank", rate)
+                        .bind("id", entity.getId())
+                        .bind("associatedWord", associatedWord)
+                        .execute();
+            }
+          return result;
+        });
+    }
+
+    @Transactional
+    public Word update(Word entity) {
+        return jdbi.withHandle(handle -> {
+            Word word = handle.createUpdate("UPDATE words " +
+                    "SET title=:title, last_mod_date=:lastModifiedDate, last_mod_user=:lastModifier, value=:value, type=:typeCode, obscenity=:obscenity " +
+                    "WHERE id=:id")
+                    .bindBean(entity)
+                    .executeAndReturnGeneratedKeys()
+                    .map(new WordMapper(this, true))
+                    .one();
+            handle.createUpdate("DELETE FROM word_emphasis_rank_links WHERE primary_word_id = :id")
+                    .bind("id", word.getId())
+                    .execute();
+            handle.createUpdate("DELETE FROM word_formality_rank_links WHERE primary_word_id = :id")
+                    .bind("id", word.getId())
+                    .execute();
+            for (Word associated : entity.getAssociations()) {
+                Optional<Word> optionalWord = findByValue(associated.getValue());
+                if (optionalWord.isPresent()) {
+                    handle.createUpdate("INSERT INTO word_emphasis_rank_links (primary_word_id, related_word_id)" +
+                            "VALUES (:primary, :related )")
+                            .bind("primary", word.getId())
+                            .bind("related", optionalWord.get().getId())
+                            .execute();
+                    handle.createUpdate("INSERT INTO word_formality_rank_links (primary_word_id, related_word_id)" +
+                            "VALUES (:primary, :related )")
+                            .bind("primary", word.getId())
+                            .bind("related", optionalWord.get().getId())
+                            .execute();
+                    //it needs if association has been updated;
+                    word = findById(word.getId()).get();
+                }
+            }
+            return word;
+        });
+    }
+
+    public int bareDelete(Word word) {
+        jdbi.useHandle(handle -> {
+            handle.createUpdate("DELETE FROM word_emphasis_rank_links WHERE related_word_id = :id")
+                    .bind("id", word.getId())
+                    .execute();
+            handle.createUpdate("DELETE FROM word_emphasis_rank_links WHERE primary_word_id = :id")
+                    .bind("id", word.getId())
+                    .execute();
+            handle.createUpdate("DELETE FROM word_formality_rank_links WHERE related_word_id = :id")
+                    .bind("id", word.getId())
+                    .execute();
+            handle.createUpdate("DELETE FROM word_formality_rank_links WHERE primary_word_id = :id")
+                    .bind("id", word.getId())
+                    .execute();
+            handle.createUpdate("DELETE FROM words WHERE id = :id")
+                    .bind("id", word.getId())
+                    .execute();
+        });
+        return 0;
     }
 
 

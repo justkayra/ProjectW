@@ -4,7 +4,7 @@ import com.semantyca.dto.constant.EmphasisType;
 
 public class TransformationRequestDTO {
     private String sourceText;
-    private EmphasisType emphasis;
+    private EmphasisType emphasisType;
 
 
     public String getSourceText() {
@@ -15,12 +15,12 @@ public class TransformationRequestDTO {
         this.sourceText = sourceText;
     }
 
-    public void setEmphasis(EmphasisType emphasis) {
-        this.emphasis = emphasis;
+    public void setEmphasisType(EmphasisType emphasisType) {
+        this.emphasisType = emphasisType;
     }
 
-    public EmphasisType getEmphasis() {
-        return emphasis;
+    public EmphasisType getEmphasisType() {
+        return emphasisType;
     }
 
     public static class Builder {
@@ -40,7 +40,7 @@ public class TransformationRequestDTO {
         public TransformationRequestDTO build() {
             TransformationRequestDTO request = new TransformationRequestDTO();
             request.setSourceText(sourceText);
-            request.setEmphasis(emphasis);
+            request.setEmphasisType(emphasis);
             return request;
         }
     }

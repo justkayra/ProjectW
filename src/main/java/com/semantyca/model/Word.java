@@ -6,12 +6,16 @@ import com.semantyca.model.embedded.RLSEntry;
 import com.semantyca.model.user.AnonymousUser;
 
 import java.time.ZonedDateTime;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.UUID;
 
 public class Word extends SecureDataEntity<UUID> {
     private String value;
     private LanguageCode language;
     private WordType type;
+    private int obscenity;
+    private List<Word> associations = new ArrayList<>();
 
     public String getValue() {
         return value;
@@ -33,8 +37,28 @@ public class Word extends SecureDataEntity<UUID> {
         return type;
     }
 
+    public int getTypeCode() {
+        return type.getCode();
+    }
+
     public void setType(WordType type) {
         this.type = type;
+    }
+
+    public int getObscenity() {
+        return obscenity;
+    }
+
+    public void setObscenity(int obscenity) {
+        this.obscenity = obscenity;
+    }
+
+    public List<Word> getAssociations() {
+        return associations;
+    }
+
+    public void setAssociations(List<Word> associations) {
+        this.associations = associations;
     }
 
     public static class Builder {
@@ -46,6 +70,8 @@ public class Word extends SecureDataEntity<UUID> {
         private String value;
         private LanguageCode language = LanguageCode.ENG;
         private WordType type = WordType.UNKNOWN;
+        private int obscenity;
+        private List<Word> associations = new ArrayList<>();
 
         public Builder setRegDate(ZonedDateTime regDate) {
             this.regDate = regDate;
@@ -87,6 +113,21 @@ public class Word extends SecureDataEntity<UUID> {
             return this;
         }
 
+        public Builder setAuthor(int author) {
+            this.author = author;
+            return this;
+        }
+
+        public Builder setObscenity(int obscenity) {
+            this.obscenity = obscenity;
+            return this;
+        }
+
+        public Builder setAssociations(List<Word> associations) {
+            this.associations = associations;
+            return this;
+        }
+
         public Word build() {
             Word entity = new Word();
             entity.setRegDate(regDate);
@@ -101,6 +142,8 @@ public class Word extends SecureDataEntity<UUID> {
             entity.setValue(value);
             entity.setLanguage(language);
             entity.setType(type);
+            entity.setObscenity(obscenity);
+            entity.setAssociations(associations);
             return entity;
         }
     }

@@ -17,7 +17,6 @@ public class AbstractOutcome<T extends AbstractOutcome> implements IOutcome {
     protected String identifier = "undefined";
     protected OutcomeType type = OutcomeType.UNKNOWN;
     protected String title = EnvConst.APP_ID;
-    protected String pageName = "";
     protected  Map<String, Object> payloads = new LinkedHashMap();
 
     public AbstractOutcome setTitle(String title) {
@@ -65,15 +64,6 @@ public class AbstractOutcome<T extends AbstractOutcome> implements IOutcome {
 
     public OutcomeType getType() {
         return type;
-    }
-
-    public String getPageName() {
-        return pageName;
-    }
-
-    public T setPageName(String pageName) {
-        this.pageName = pageName;
-        return (T) this;
     }
 
     public String toString() {

@@ -15,6 +15,7 @@ import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 import java.util.List;
 
+@Deprecated
 @Singleton
 @Path("/adjectives")
 public class AdjectiveController {

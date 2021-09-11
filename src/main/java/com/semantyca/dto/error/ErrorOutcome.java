@@ -1,6 +1,5 @@
 package com.semantyca.dto.error;
 
-import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonPropertyOrder;
 import com.semantyca.dto.AbstractOutcome;
@@ -17,11 +16,6 @@ public class ErrorOutcome extends AbstractOutcome<ErrorOutcome> {
         identifier = e.getClass().getSimpleName().toLowerCase() + "_exception";
         this.type = type;
         title = e.getMessage();
-    }
-
-    @JsonIgnore
-    public String getPageName() {
-        return pageName;
     }
 
 

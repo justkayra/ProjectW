@@ -8,6 +8,7 @@ import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
+@Deprecated
 public class AdjectiveRepository {
 
     private Jdbi jdbi;
@@ -56,7 +57,6 @@ public class AdjectiveRepository {
             return adjective;
         });
     }
-
 
     @Transactional
     public Adjective insert(Adjective entity) {

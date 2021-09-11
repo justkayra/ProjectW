@@ -6,7 +6,7 @@ import com.semantyca.dto.constant.WordType;
 import com.semantyca.model.Word;
 import com.semantyca.repository.AdjectiveRepository;
 import com.semantyca.repository.WordRepository;
-import io.smallrye.mutiny.Uni;
+import com.semantyca.repository.exception.DocumentExists;
 import io.vertx.mutiny.pgclient.PgPool;
 import org.eclipse.microprofile.rest.client.inject.RestClient;
 import org.jdbi.v3.core.Jdbi;
@@ -18,12 +18,11 @@ import javax.inject.Inject;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Optional;
-import java.util.UUID;
 
 @ApplicationScoped
 public class DatamuseService {
     private static final Logger LOGGER = LoggerFactory.getLogger("DatamuseService");
-    private static final HashMap<String, WordType> cache = new HashMap<>();
+    private static final HashMap<String, WordType> cache;
 
     @RestClient
     DatamuseConnection datamuseConnection;
@@ -37,7 +36,7 @@ public class DatamuseService {
     @Inject
     public DatamuseService(Jdbi jdbi, PgPool dbClient, WordService wordService) {
         adjectiveRepository = new AdjectiveRepository(jdbi);
-        wordRepository = new WordRepository(jdbi, dbClient);
+        wordRepository = new WordRepository(jdbi);
         this.wordService = wordService;
 
     }
@@ -46,24 +45,21 @@ public class DatamuseService {
         return datamuseConnection.get(word);
     }
 
-    public WordType getWordType(String word) {
+    public WordType getWordType(String word) throws DocumentExists {
        WordType wordType = cache.get(word);
        if (wordType == null) {
            LOGGER.info("request for:  \"" + word + "\"");
-           Optional<Word> wordOptional = wordService.get(word);
+           Optional<Word> wordOptional = wordService.getByWord(word);
            if (wordOptional.isPresent()){
                 wordType = wordOptional.get().getType();
                cache.put(word, wordType);
            } else {
                List<DatamuseWordDTO> datamuseWordDTOList = datamuseConnection.getWordType(word, "p");
                if (datamuseWordDTOList.size() > 0) {
-                   DatamuseWordDTO datamuseWordDTO = datamuseWordDTOList.get(0);
-                   List<String> tags = datamuseWordDTO.getTags();
+                   List<String> tags = datamuseWordDTOList.get(0).getTags();
                    if (tags != null) {
-                       wordType = WordType.getType(datamuseWordDTO.getTags().get(0).toLowerCase());
-                       Uni<UUID> id = wordService.save(word, wordType);
-                       id.subscribe().with(resp -> System.out.println("Success: " + resp));
-                       System.out.println("word = " + id);
+                       wordType = WordType.getType(tags.get(0).toLowerCase());
+                       wordService.add(word, wordType);
                        cache.put(word, wordType);
                        return wordType;
                    } else {
@@ -77,5 +73,13 @@ public class DatamuseService {
            }
        }
         return wordType;
+    }
+
+    static {
+        cache = new HashMap<>();
+        cache.put("&#32;", WordType.SYSTEM);
+        cache.put("&#44;", WordType.SYSTEM);
+        cache.put("&#46;", WordType.SYSTEM);
+        cache.put("&#34;", WordType.SYSTEM);
     }
 }

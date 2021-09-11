@@ -8,10 +8,11 @@ CREATE TABLE words
 	last_mod_user INT not null,
 	value VARCHAR(100) UNIQUE,
 	language VARCHAR(100),
-	type INT NOT NULL DEFAULT 0
+	type INT NOT NULL DEFAULT 0,
+	obscenity INT NOT NULL DEFAULT 0
 );
 
-CREATE TABLE adjectives
+CREATE TABLE collocations
 (
 	id uuid DEFAULT uuid_generate_v4() PRIMARY KEY,
 	reg_date TIMESTAMP with TIME zone not null,
@@ -21,33 +22,35 @@ CREATE TABLE adjectives
 	last_mod_user INT not null,
 	value VARCHAR(100) UNIQUE,
 	language VARCHAR(100),
-	emphasisRank INT NOT NULL DEFAULT 0,
-	formalRank INT NOT NULL DEFAULT 0
+	type INT NOT NULL DEFAULT 0,
+	obscenity INT NOT NULL DEFAULT 0
 );
 
-CREATE INDEX idx_adjectives_value ON adjectives(value);
+CREATE INDEX idx_words_value ON words(value);
+CREATE INDEX idx_words_type ON words(type);
+CREATE INDEX idx_words_language ON words(language);
 
-CREATE TABLE adj_links
+CREATE TABLE word_emphasis_rank_links
 (
-   primary_adj_id uuid NOT NULL ,
-   related_adj_id uuid NOT NULL,
-   emphasisRank INT NOT NULL DEFAULT 0,
-   PRIMARY KEY (primary_adj_id, related_adj_id),
-   FOREIGN KEY(primary_adj_id) REFERENCES adjectives (id),
-   FOREIGN KEY(related_adj_id) REFERENCES adjectives (id)
+   primary_word_id uuid NOT NULL ,
+   related_word_id uuid NOT NULL,
+   rank INT NOT NULL DEFAULT 0,
+   PRIMARY KEY (primary_word_id, related_word_id, rank),
+   FOREIGN KEY(primary_word_id) REFERENCES words (id),
+   FOREIGN KEY(related_word_id) REFERENCES words (id)
 );
 
-CREATE TABLE adj_formal_rank_links
+CREATE TABLE word_formality_rank_links
 (
-   primary_adj_id uuid NOT NULL ,
-   related_adj_id uuid NOT NULL,
-   formalRank INT NOT NULL DEFAULT 0,
-   PRIMARY KEY (primary_adj_id, related_adj_id, formalRank),
-   FOREIGN KEY(primary_adj_id) REFERENCES adjectives (id),
-   FOREIGN KEY(related_adj_id) REFERENCES adjectives (id)
+   primary_word_id uuid NOT NULL ,
+   related_word_id uuid NOT NULL,
+   rank INT NOT NULL DEFAULT 0,
+   PRIMARY KEY (primary_word_id, related_word_id, rank),
+   FOREIGN KEY(primary_word_id) REFERENCES words (id),
+   FOREIGN KEY(related_word_id) REFERENCES words (id)
 );
 
-CREATE TABLE adjective_rls
+CREATE TABLE word_rls
 (
      entity_id uuid NOT NULL,
      reader INT NOT NULL,
@@ -57,7 +60,7 @@ CREATE TABLE adjective_rls
 );
 
 
-CREATE TABLE adjective_labels
+CREATE TABLE word_labels
 (
      entity_id uuid NOT NULL,
      label_id INT NOT NULL,
