@@ -1,7 +1,13 @@
 package com.semantyca.dto.constant;
 
 public enum WordType {
-    UNKNOWN(0, "null"), ARTICLE(100,"a"), NOUN(101,"n"), ADJECTIVE(102,"adj"), ADVERB(103,"adv"), VERB(104,"v"), SYSTEM(110, "s");
+    UNKNOWN(0, "null"),
+    ARTICLE(100,"a"),
+    NOUN(101,"n"),
+    ADJECTIVE(102,"adj"),
+    ADVERB(103,"adv"),
+    VERB(104,"v"),
+    SYSTEM(110, "s");
 
     private int code;
     private String alias;

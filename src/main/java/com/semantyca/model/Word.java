@@ -16,6 +16,7 @@ public class Word extends SecureDataEntity<UUID> {
     private WordType type;
     private int obscenity;
     private List<Word> associations = new ArrayList<>();
+    private ZonedDateTime lastExtCheck;
 
     public String getValue() {
         return value;
@@ -59,6 +60,14 @@ public class Word extends SecureDataEntity<UUID> {
 
     public void setAssociations(List<Word> associations) {
         this.associations = associations;
+    }
+
+    public ZonedDateTime getLastExtCheck() {
+        return lastExtCheck;
+    }
+
+    public void setLastExtCheck(ZonedDateTime lastExtCheck) {
+        this.lastExtCheck = lastExtCheck;
     }
 
     public static class Builder {

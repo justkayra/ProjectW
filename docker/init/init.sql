@@ -8,6 +8,7 @@ CREATE TABLE words
 	last_mod_user INT not null,
 	value VARCHAR(100) UNIQUE,
 	language VARCHAR(100),
+	last_ext_check TIMESTAMP with TIME zone,
 	type INT NOT NULL DEFAULT 0,
 	obscenity INT NOT NULL DEFAULT 0
 );

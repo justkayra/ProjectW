@@ -41,7 +41,7 @@ public class WordController {
     @Path("/value/{word}")
     @Produces(MediaType.APPLICATION_JSON)
     public Response getWord(@PathParam("word") String word) {
-        Optional<Word> optionalWord = wordService.getByWord(word);
+        Optional<Word> optionalWord = wordService.getByWord(word, false);
         if (optionalWord.isPresent()) {
             DocumentOutcome outcome = new DocumentOutcome();
             outcome.setPayload(optionalWord.get());
