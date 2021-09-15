@@ -37,6 +37,12 @@ public class AbstractOutcome<T extends AbstractOutcome> implements IOutcome {
     }
 
     @JsonIgnore
+    public T addPayload(String payloadName, Object payload){
+        payloads.put(payloadName, payload);
+        return (T) this;
+    }
+
+    @JsonIgnore
     public T addPayload(Object payload){
         payloads.put(payload.getClass().getSimpleName().toLowerCase(), payload);
         return (T) this;

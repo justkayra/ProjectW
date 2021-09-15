@@ -1,11 +1,12 @@
 package com.semantyca.projectw.service;
 
 import com.semantyca.projectw.dto.LegendEntryDTO;
-import com.semantyca.projectw.dto.SlateTextElementDTO;
 import com.semantyca.projectw.dto.TransformationRequestDTO;
-import com.semantyca.projectw.dto.TransformationResultDTO;
 import com.semantyca.projectw.dto.constant.EmphasisType;
+import com.semantyca.projectw.dto.constant.ResponseStyle;
 import com.semantyca.projectw.dto.constant.WordType;
+import com.semantyca.projectw.dto.delta.Attribute;
+import com.semantyca.projectw.dto.delta.Entry;
 import com.semantyca.projectw.model.Word;
 import com.semantyca.projectw.repository.exception.DocumentExists;
 import com.semantyca.projectw.util.NumberUtil;
@@ -28,8 +29,8 @@ public class TransformationService {
         this.wordService = wordService;
     }
 
-    public TransformationResultDTO process(TransformationRequestDTO dto) throws DocumentExists {
-        List<SlateTextElementDTO> elements = new ArrayList<>();
+    public Object[] process(TransformationRequestDTO dto, ResponseStyle style) throws DocumentExists {
+        List<Entry> ops = new ArrayList<>();
         List<LegendEntryDTO> legends = new ArrayList<>();
         String[] fields = preprocessText(dto.getSourceText());
         Mode mode = Mode.SKIPPING;
@@ -38,10 +39,12 @@ public class TransformationService {
             String currentWord = fields[i].replace("\n", "");
             if (currentWord.length() > 0) {
                 if (wordService.getWordType(currentWord) == WordType.ADJECTIVE) {
-                    if (mode != Mode.REPLACING) {
+                    if (style == ResponseStyle.DELTA && mode != Mode.REPLACING) {
                         String t = stringBuilder.toString();
                         if (!t.equals("")) {
-                            elements.add(new SlateTextElementDTO.Builder().build(stringBuilder.toString()));
+                            Entry entry = new Entry();
+                            entry.setInsert(stringBuilder.toString());
+                            ops.add(entry);
                             stringBuilder = new StringBuilder();
                         }
                     }
@@ -57,10 +60,15 @@ public class TransformationService {
                         stringBuilder.append(currentWord);
                     }
                 } else {
-                    if (mode != Mode.SKIPPING) {
+                    if (style == ResponseStyle.DELTA && mode != Mode.SKIPPING) {
                         String t = stringBuilder.toString();
                         if (!t.equals("")) {
-                            elements.add(new SlateTextElementDTO.Builder().build(stringBuilder.toString(), true));
+                            Entry entry = new Entry();
+                            entry.setInsert(stringBuilder.toString());
+                            Attribute attribute = new Attribute();
+                            attribute.setBold(true);
+                            entry.setAttributes(attribute);
+                            ops.add(entry);
                             stringBuilder = new StringBuilder();
                         }
                     }
@@ -69,15 +77,15 @@ public class TransformationService {
                 }
             }
         }
-        SlateTextElementDTO element = new SlateTextElementDTO.Builder().build(stringBuilder.toString());
-        if (mode == Mode.REPLACING) {
-            element.setBold(true);
+        Entry entry = new Entry();
+        entry.setInsert(stringBuilder.toString());
+        if (style == ResponseStyle.DELTA && mode == Mode.REPLACING) {
+            Attribute attribute = new Attribute();
+            attribute.setBold(true);
+            entry.setAttributes(attribute);
         }
-        elements.add(element);
-        TransformationResultDTO result = new TransformationResultDTO();
-        result.setType("paragraph");
-        result.setChildren(elements);
-        result.setLegendEntries(legends);
+        ops.add(entry);
+        Object[] result =  {ops, legends};
         return result;
     }
 
@@ -93,6 +101,7 @@ public class TransformationService {
     private static String[] preprocessText(String text) {
         return text
                 .replace("\uFEFF", "")
+                .replace("'", "~&#39;~")
                 .replace(" ", "~&#32;~")
                 .replace(",", "~&#44;~")
                 .replace(".", "~&#46;~")

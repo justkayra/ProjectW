@@ -1,10 +1,12 @@
 package com.semantyca.projectw.dto;
 
+import com.semantyca.projectw.dto.delta.Entry;
+
 import java.util.List;
 
 public class TransformationResultDTO {
     private String type;
-    private List<SlateTextElementDTO> children;
+    private List<Entry> children;
     private List<LegendEntryDTO> legendEntries;
 
     public String getType() {
@@ -15,11 +17,11 @@ public class TransformationResultDTO {
         this.type = type;
     }
 
-    public List<SlateTextElementDTO> getChildren() {
+    public List<Entry> getChildren() {
         return children;
     }
 
-    public void setChildren(List<SlateTextElementDTO> children) {
+    public void setChildren(List<Entry> children) {
         this.children = children;
     }
 
