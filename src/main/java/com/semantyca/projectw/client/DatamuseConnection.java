@@ -18,10 +18,16 @@ public interface DatamuseConnection {
     @GET
     @Path("/")
     @Produces(MediaType.APPLICATION_JSON)
-    List<DatamuseWordDTO> get(@QueryParam("rel_syn") String word);
+    List<DatamuseWordDTO> getSyn(@QueryParam("rel_syn") String word);
 
     @GET
     @Path("/")
     @Produces(MediaType.APPLICATION_JSON)
     List<DatamuseWordDTO>  getWordType(@QueryParam("sp") String word, @QueryParam("md") String p);
+
+    @GET
+    @Path("/antonyms")
+    @Produces(MediaType.APPLICATION_JSON)
+    List<DatamuseWordDTO> getAnt(@QueryParam("rel_ant") String word);
+
 }

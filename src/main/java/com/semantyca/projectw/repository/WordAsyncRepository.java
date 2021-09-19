@@ -21,7 +21,6 @@ public class WordAsyncRepository extends AbstractRepository {
 
     private PgPool client;
 
-    private AdjectiveRepository adjectiveRepository;
 
     private Jdbi jdbi;
 

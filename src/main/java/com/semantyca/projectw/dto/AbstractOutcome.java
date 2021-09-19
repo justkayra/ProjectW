@@ -12,9 +12,8 @@ import java.util.Map;
 
 @JsonInclude(JsonInclude.Include.NON_NULL)
 public class AbstractOutcome<T extends AbstractOutcome> implements IOutcome {
-    protected String identifier = "undefined";
     protected OutcomeType type = OutcomeType.UNKNOWN;
-    protected String title = "application";
+    protected String title;
     protected  Map<String, Object> payloads = new LinkedHashMap();
 
     public AbstractOutcome setTitle(String title) {
@@ -22,14 +21,6 @@ public class AbstractOutcome<T extends AbstractOutcome> implements IOutcome {
         return this;
     }
 
-    public String getIdentifier() {
-        return identifier;
-    }
-
-    public AbstractOutcome setIdentifier(String identifier) {
-        this.identifier = identifier;
-        return this;
-    }
 
     public AbstractOutcome setType(OutcomeType type) {
         this.type = type;
@@ -58,10 +49,6 @@ public class AbstractOutcome<T extends AbstractOutcome> implements IOutcome {
         return payloads;
     }
 
-    public void setPayloads(Map<String, Object> payloads) {
-        this.payloads = payloads;
-    }
-
     public String getTitle() {
         return title;
     }
@@ -71,7 +58,7 @@ public class AbstractOutcome<T extends AbstractOutcome> implements IOutcome {
     }
 
     public String toString() {
-        return "identifier=" + identifier + ",type=" + type + ", title=" + title;
+        return "type=" + type + ", title=" + title;
     }
 
     public AbstractOutcome setResult(OutcomeType type, ResultType result) {

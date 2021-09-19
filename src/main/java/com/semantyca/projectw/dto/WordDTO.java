@@ -1,11 +1,20 @@
 package com.semantyca.projectw.dto;
 
-import java.util.List;
+import java.util.Map;
 
-public class WordDTO {
+public class WordDTO implements IDTO {
+    private String id;
     private String value;
     private String type;
-    private List<String> associations;
+    private Map<String, AssociationDTO> associations;
+
+    public String getId() {
+        return id;
+    }
+
+    public void setId(String id) {
+        this.id = id;
+    }
 
     public String getValue() {
         return value;
@@ -23,11 +32,11 @@ public class WordDTO {
         this.type = type;
     }
 
-    public List<String> getAssociations() {
+    public Map<String, AssociationDTO> getAssociations() {
         return associations;
     }
 
-    public void setAssociations(List<String> associations) {
+    public void setAssociations(Map<String, AssociationDTO> associations) {
         this.associations = associations;
     }
 }

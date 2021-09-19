@@ -1,15 +1,13 @@
 package com.semantyca.projectw.service;
 
+import com.semantyca.projectw.dto.*;
+import com.semantyca.projectw.dto.constant.MessageLevel;
 import com.semantyca.projectw.dto.constant.RatingType;
 import com.semantyca.projectw.dto.constant.WordType;
-import com.semantyca.projectw.repository.exception.DocumentExists;
-import com.semantyca.projectw.dto.DatamuseWordDTO;
-import com.semantyca.projectw.dto.FeedbackEntry;
-import com.semantyca.projectw.dto.ProcessFeedback;
-import com.semantyca.projectw.dto.WordDTO;
-import com.semantyca.projectw.dto.constant.MessageLevel;
 import com.semantyca.projectw.model.Word;
 import com.semantyca.projectw.repository.WordRepository;
+import com.semantyca.projectw.repository.exception.DocumentExists;
+import io.vertx.sqlclient.Tuple;
 import org.jdbi.v3.core.Jdbi;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -24,8 +22,9 @@ import java.util.stream.Collectors;
 public class WordService {
     private static final Logger LOGGER = LoggerFactory.getLogger("WordService");
     private static final HashMap<String, WordType> cache;
-    private static final String[] sysWords = {"&#32;", "&#44;", "&#46;", "&#34;"};
+    private static final String[] sysWords = {"&#32;", "&#44;", "&#46;", "&#34;", "&#39;"};
     private static final boolean CHECK_SYNONYMS_FROM_EXT = true;
+    private static final boolean CHECK_ANTONYMS_FROM_EXT = true;
 
     WordRepository repository;
 
@@ -38,7 +37,7 @@ public class WordService {
     }
 
     public List<Word> getAll() {
-        return repository.findAllUnrestricted(100, 0);
+        return repository.findAll(100, 0);
     }
 
     public Optional<Word> getById(String id) {
@@ -56,11 +55,20 @@ public class WordService {
 
             }
         }
+
         return optionalWord;
     }
 
-    public List<Word> getAllAssociations() {
-        return repository.findAllUnrestricted(100, 0);
+    public List<Tuple> findAssociatedWords(UUID id) {
+        return repository.findAssociations(id);
+    }
+
+    public List<Tuple> findAntonyms(UUID id) {
+        List<Tuple> antList = repository.findAntonyms(id);
+        if (antList.size() == 0 && CHECK_ANTONYMS_FROM_EXT){
+
+        }
+        return repository.findAntonyms(id);
     }
 
     public Word add(String word, WordType wordType) throws DocumentExists {
@@ -70,19 +78,25 @@ public class WordService {
         return add(wordDTO);
     }
 
+    public int updateRates(String id, String associatedWord, String rateAsString) {
+        int rate = Integer.parseInt(rateAsString);
+        return repository.updateRates(UUID.fromString(id), RatingType.EMPHASIS, associatedWord, rate );
+
+    }
     public Word add(WordDTO dto) throws DocumentExists {
         Optional<Word> wordOptional = repository.findByValue(dto.getValue(), false);
         if (wordOptional.isEmpty()) {
             List<Word> relatedWords = new ArrayList<>();
-            List<String> associationsList = dto.getAssociations();
+            Map<String, AssociationDTO> associationsList = dto.getAssociations();
             if (associationsList != null) {
-                for (String a : dto.getAssociations()) {
-                    Optional<Word> associationOptional = repository.findByValue(a, false);
+                for (AssociationDTO a : dto.getAssociations().values()) {
+                    String value = a.getValue();
+                    Optional<Word> associationOptional = repository.findByValue(value, false);
                     if (associationOptional.isPresent()) {
                         relatedWords.add(associationOptional.get());
                     } else {
                         Word associated = new Word.Builder()
-                                .setValue(a)
+                                .setValue(value)
                                 .build();
                         Word associatedAdjective = repository.insert(associated);
                         relatedWords.add(associatedAdjective);
@@ -125,15 +139,10 @@ public class WordService {
         repository.update(word);
     }
 
-    public int updateEmphasisRank(String id, String associatedWord, String rateAsText) {
-        Optional<Word> wordOptional = repository.findById(UUID.fromString(id));
-        return repository.updateRates(wordOptional.get(), RatingType.EMPHASIS, associatedWord, Integer.parseInt(rateAsText));
-    }
-
     public ProcessFeedback delete(String id) {
         ProcessFeedback feedback = new ProcessFeedback();
         if (id.equals("all")) {
-            List<Word> wordList = repository.findAllUnrestricted(0, 0);
+            List<Word> wordList = repository.findAll(0, 0);
             for (Word word : wordList) {
                 feedback.addEntry(buildFeedBackEntry(word.getId().toString(), repository.bareDelete(word)));
             }
@@ -179,6 +188,19 @@ public class WordService {
             return true;
         } else {
             LOGGER.warn("There is no associations for \"" + entity.getValue() + "\"");
+        }
+        return false;
+    }
+
+    private boolean updateAntonymsFromExtService(Word entity) {
+        List<DatamuseWordDTO> resp = datamuseService.getAntonyms(entity.getValue());
+        if (resp.size() > 0) {
+            entity.setAssociations(resp.stream().map(v -> (new Word.Builder().setValue(v.getWord()))
+                    .setType(datamuseService.getWordType(v.getWord()))
+                    .build()).collect(Collectors.toList()));
+            return true;
+        } else {
+            LOGGER.warn("There is no antonyms for \"" + entity.getValue() + "\"");
         }
         return false;
     }

@@ -7,8 +7,6 @@ import java.util.Map;
 
 public interface IOutcome<T> {
 
-    String getIdentifier();
-
     OutcomeType getType();
 
     String getTitle();

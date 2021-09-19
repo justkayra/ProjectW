@@ -31,7 +31,7 @@ public class WordMapper extends AbstractMapper<Word> {
         entity.setObscenity(rs.getInt("obscenity"));
         entity.setLastExtCheck(getDateTime(rs.getTimestamp("last_ext_check")));
         if (includeAssociatedWords) {
-            List<Word> associated =  wordRepository.findAssociatedWord(entity.getId());
+            List<Word> associated =  wordRepository.findRelatedWords(entity.getId());
             entity.setAssociations(associated);
         }
         return entity;

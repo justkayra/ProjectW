@@ -10,6 +10,7 @@ import com.semantyca.projectw.dto.delta.Entry;
 import com.semantyca.projectw.model.Word;
 import com.semantyca.projectw.repository.exception.DocumentExists;
 import com.semantyca.projectw.util.NumberUtil;
+import io.vertx.sqlclient.Tuple;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -49,15 +50,21 @@ public class TransformationService {
                         }
                     }
                     mode = Mode.REPLACING;
-                    Word word = wordService.getByWord(currentWord, true).get();
+                    if (dto.getEmphasisType() == EmphasisType.RANDOM) {
+                        Word word = wordService.getByWord(currentWord, true).get();
 
-                    List<Word> associationList = word.getAssociations();
-                    if (associationList.size() > 0) {
-                        String replacement = getReplacement(dto.getEmphasisType(), associationList);
-                        stringBuilder.append(replacement);
-                        legends.add(new LegendEntryDTO.Builder().setOldWord(currentWord).setNewWord(replacement).build());
-                    } else {
-                        stringBuilder.append(currentWord);
+                        List<Word> associationList = word.getAssociations();
+                        if (associationList.size() > 0) {
+                            String replacement = getReplacement(dto.getEmphasisType(), associationList);
+                            stringBuilder.append(replacement);
+                            legends.add(new LegendEntryDTO.Builder().setOldWord(currentWord).setNewWord(replacement).build());
+                        } else {
+                            stringBuilder.append(currentWord);
+                        }
+                    } else if(dto.getEmphasisType() == EmphasisType.OPPOSITE){
+                        Word word = wordService.getByWord(currentWord, false).get();
+                        List<Tuple> antonyms = wordService.findAntonyms(word.getId());
+
                     }
                 } else {
                     if (style == ResponseStyle.DELTA && mode != Mode.SKIPPING) {

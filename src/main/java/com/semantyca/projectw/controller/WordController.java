@@ -2,6 +2,7 @@ package com.semantyca.projectw.controller;
 
 import com.semantyca.projectw.dto.WordDTO;
 import com.semantyca.projectw.dto.document.DocumentOutcome;
+import com.semantyca.projectw.facade.WordServiceFacade;
 import com.semantyca.projectw.model.Word;
 import com.semantyca.projectw.repository.exception.DocumentExists;
 import com.semantyca.projectw.service.WordService;
@@ -12,7 +13,6 @@ import javax.ws.rs.*;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 import java.util.List;
-import java.util.Optional;
 
 @Singleton
 @Path("/words")
@@ -21,13 +21,15 @@ public class WordController {
     @Inject
     private WordService wordService;
 
+    @Inject
+    WordServiceFacade wordServiceFacade;
+
     @GET
     @Path("/")
     @Produces(MediaType.APPLICATION_JSON)
     public List<Word> getWords() {
         return wordService.getAll();
     }
-
 
 
     @GET
@@ -41,14 +43,10 @@ public class WordController {
     @Path("/value/{word}")
     @Produces(MediaType.APPLICATION_JSON)
     public Response getWord(@PathParam("word") String word) {
-        Optional<Word> optionalWord = wordService.getByWord(word, false);
-        if (optionalWord.isPresent()) {
-            DocumentOutcome outcome = new DocumentOutcome();
-            outcome.setPayload(optionalWord.get());
-            return Response.ok().entity(outcome).build();
-       } else {
-            return Response.status(Response.Status.NOT_FOUND).build();
-        }
+        WordDTO wordDTO = wordServiceFacade.getWord(word);
+        DocumentOutcome outcome = new DocumentOutcome();
+        outcome.addPayload(wordDTO);
+        return Response.ok().entity(outcome).build();
     }
 
     @POST
@@ -59,15 +57,19 @@ public class WordController {
 
     @PUT
     @Path("/{id}/emphasis/{word}/{rate}")
-    public Response updateEmphsis(@PathParam("id") String id, @PathParam("word") String word, @PathParam("rate") String rate) throws DocumentExists {
-        return Response.ok().entity( wordService.updateEmphasisRank(id, word, rate)).build();
+    public Response updateEmphsis(@PathParam("id") String id, @PathParam("word") String word, @PathParam("rate") String rate) {
+        wordService.updateRates(id, word, rate);
+        WordDTO wordDTO = wordServiceFacade.getWordById(id);
+        DocumentOutcome outcome = new DocumentOutcome();
+        outcome.addPayload(wordDTO);
+        return Response.ok().entity(outcome).build();
     }
 
     @DELETE
     @Path("/{id}")
     @Produces(MediaType.APPLICATION_JSON)
-    public Response deleteWord(@PathParam("id") String id)  {
-        return Response.ok().entity( wordService.delete(id)).build();
+    public Response deleteWord(@PathParam("id") String id) {
+        return Response.ok().entity(wordService.delete(id)).build();
     }
 
 

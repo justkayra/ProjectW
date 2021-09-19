@@ -10,21 +10,8 @@ CREATE TABLE words
 	language VARCHAR(100),
 	last_ext_check TIMESTAMP with TIME zone,
 	type INT NOT NULL DEFAULT 0,
-	obscenity INT NOT NULL DEFAULT 0
-);
-
-CREATE TABLE collocations
-(
-	id uuid DEFAULT uuid_generate_v4() PRIMARY KEY,
-	reg_date TIMESTAMP with TIME zone not null,
-	title VARCHAR(255),
-	author INT not null,
-	last_mod_date TIMESTAMP with TIME zone not null,
-	last_mod_user INT not null,
-	value VARCHAR(100) UNIQUE,
-	language VARCHAR(100),
-	type INT NOT NULL DEFAULT 0,
-	obscenity INT NOT NULL DEFAULT 0
+	obscenity INT NOT NULL DEFAULT 0,
+	phrase INT NOT NULL DEFAULT 0
 );
 
 CREATE INDEX idx_words_value ON words(value);
@@ -36,6 +23,16 @@ CREATE TABLE word_emphasis_rank_links
    primary_word_id uuid NOT NULL ,
    related_word_id uuid NOT NULL,
    rank INT NOT NULL DEFAULT 0,
+   PRIMARY KEY (primary_word_id, related_word_id, rank),
+   FOREIGN KEY(primary_word_id) REFERENCES words (id),
+   FOREIGN KEY(related_word_id) REFERENCES words (id)
+);
+
+
+CREATE TABLE word_antonyms_links
+(
+   primary_word_id uuid NOT NULL ,
+   related_word_id uuid NOT NULL
    PRIMARY KEY (primary_word_id, related_word_id, rank),
    FOREIGN KEY(primary_word_id) REFERENCES words (id),
    FOREIGN KEY(related_word_id) REFERENCES words (id)

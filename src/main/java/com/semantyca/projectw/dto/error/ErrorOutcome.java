@@ -13,7 +13,6 @@ public class ErrorOutcome extends AbstractOutcome<ErrorOutcome> {
 
     public ErrorOutcome(DocumentExists e, OutcomeType type) {
         super();
-        identifier = e.getClass().getSimpleName().toLowerCase() + "_exception";
         this.type = type;
         title = e.getMessage();
     }

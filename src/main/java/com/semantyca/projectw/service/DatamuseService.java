@@ -20,7 +20,12 @@ public class DatamuseService {
 
     public List<DatamuseWordDTO> getSynonyms(String word) {
         LOGGER.info("fetch word  \"" + word + "\"");
-        return datamuseConnection.get(word);
+        return datamuseConnection.getSyn(word);
+    }
+
+    public List<DatamuseWordDTO> getAntonyms(String word) {
+        LOGGER.info("fetch word  \"" + word + "\"");
+        return datamuseConnection.getAnt(word);
     }
 
     public WordType getWordType(String wordValue)  {

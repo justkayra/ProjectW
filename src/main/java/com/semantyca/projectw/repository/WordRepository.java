@@ -1,17 +1,16 @@
 package com.semantyca.projectw.repository;
 
 import com.semantyca.projectw.dto.constant.RatingType;
-import com.semantyca.projectw.model.embedded.RLSEntry;
 import com.semantyca.projectw.model.Word;
+import com.semantyca.projectw.model.embedded.RLSEntry;
+import io.vertx.sqlclient.Tuple;
 import org.jdbi.v3.core.Handle;
 import org.jdbi.v3.core.Jdbi;
 
 import javax.inject.Inject;
 import javax.transaction.Transactional;
 import java.time.ZonedDateTime;
-import java.util.List;
-import java.util.Optional;
-import java.util.UUID;
+import java.util.*;
 
 public class WordRepository extends AbstractRepository {
 
@@ -33,14 +32,7 @@ public class WordRepository extends AbstractRepository {
                 handle.createQuery("SELECT * FROM words a WHERE a.value = '" + word + "'")
                         .map(new WordMapper(this, includeAssociated)).findFirst());
     }
-
-    public List<Word> findAssociatedWord(UUID id) {
-        return jdbi.withHandle(handle ->
-                handle.createQuery("SELECT * FROM word_emphasis_rank_links wel, words w WHERE wel.primary_word_id = '" + id + "' and wel.related_word_id = w.id")
-                        .map(new WordMapper(this, false)).list());
-    }
-
-    public List<Word> findAllUnrestricted(final int limit, final int offset) {
+    public List<Word> findAll(final int limit, final int offset) {
         String sql = "SELECT * FROM words LIMIT " + limit + " OFFSET " + offset;
         if (limit == 0 && offset == 0) {
             sql = "SELECT * FROM words";
@@ -50,6 +42,27 @@ public class WordRepository extends AbstractRepository {
                 handle.createQuery(finalSql)
                         .map(new WordMapper(this, true)).list());
     }
+
+    public List<Word> findRelatedWords(UUID id) {
+        return jdbi.withHandle(handle ->
+                handle.createQuery("SELECT * FROM word_emphasis_rank_links wel, words w WHERE wel.primary_word_id = '" + id + "' and wel.related_word_id = w.id ORDER BY rank")
+                        .map(new WordMapper(this, false)).list());
+    }
+
+    public List<Tuple> findAssociations(UUID id) {
+        return jdbi.withHandle(handle ->
+            handle.createQuery("SELECT id, value, rank FROM word_emphasis_rank_links wel, words w WHERE wel.primary_word_id = '" + id + "' and wel.related_word_id = w.id ORDER BY rank")
+                    .map((rs, ctx) -> Tuple.of(rs.getObject("id", UUID.class), rs.getString("value"), rs.getInt("rank"))).list()
+        );
+    }
+
+    public List<Tuple> findAntonyms(UUID id) {
+        return jdbi.withHandle(handle ->
+                handle.createQuery("SELECT id, value FROM word_antonyms_links wal, words w WHERE wal.primary_word_id = '" + id + "' and wal.related_word_id = w.id")
+                        .map((rs, ctx) -> Tuple.of(rs.getObject("id", UUID.class), rs.getString("value"))).list()
+        );
+    }
+
 
     @Transactional
     public Word insert(Word entity) {
@@ -75,14 +88,14 @@ public class WordRepository extends AbstractRepository {
     }
 
     @Transactional
-    public int updateRates(Word entity, RatingType ratingType, String associatedWord, int rate) {
+    public int updateRates(UUID id, RatingType ratingType, String associatedWord, int rate) {
         return jdbi.withHandle(handle -> {
             int result = 0;
             if (ratingType == RatingType.EMPHASIS) {
-                result = handle.createUpdate("UPDATE word_emphasis_rank_links wl SET rank=:emphasisRank WHERE wl.primary_word_id = :id AND related_word_id IN " +
+                result = handle.createUpdate("UPDATE word_emphasis_rank_links wl SET rank= (rank + :emphasisRank) WHERE wl.primary_word_id = :id AND related_word_id IN " +
                         "(SELECT id FROM word_emphasis_rank_links wl, words w WHERE w.value = :associatedWord)")
                         .bind("emphasisRank", rate)
-                        .bind("id", entity.getId())
+                        .bind("id", id)
                         .bind("associatedWord", associatedWord)
                         .execute();
             }
