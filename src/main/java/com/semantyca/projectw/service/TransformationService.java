@@ -3,6 +3,7 @@ package com.semantyca.projectw.service;
 import com.semantyca.projectw.dto.LegendEntryDTO;
 import com.semantyca.projectw.dto.TransformationRequestDTO;
 import com.semantyca.projectw.dto.constant.EmphasisType;
+import com.semantyca.projectw.dto.constant.ReplacementResultType;
 import com.semantyca.projectw.dto.constant.ResponseStyle;
 import com.semantyca.projectw.dto.constant.WordType;
 import com.semantyca.projectw.dto.delta.Attribute;
@@ -18,6 +19,9 @@ import javax.enterprise.context.ApplicationScoped;
 import javax.inject.Inject;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
+import java.util.UUID;
+import java.util.stream.Collectors;
 
 @ApplicationScoped
 public class TransformationService {
@@ -50,14 +54,19 @@ public class TransformationService {
                         }
                     }
                     mode = Mode.REPLACING;
-                    if (dto.getEmphasisType() == EmphasisType.RANDOM) {
+                    if (dto.getEmphasisType() == EmphasisType.STRONGER || dto.getEmphasisType() == EmphasisType.WEAKER || dto.getEmphasisType() == EmphasisType.RANDOMLY) {
                         Word word = wordService.getByWord(currentWord, true).get();
-
-                        List<Word> associationList = word.getAssociations();
-                        if (associationList.size() > 0) {
-                            String replacement = getReplacement(dto.getEmphasisType(), associationList);
-                            stringBuilder.append(replacement);
-                            legends.add(new LegendEntryDTO.Builder().setOldWord(currentWord).setNewWord(replacement).build());
+                        List<Tuple> assWords = wordService.findAssociatedWords(word.getId());
+                        //List<Word> associationList = word.getAssociations();
+                        if (assWords.size() > 0) {
+                            Optional<String> stringOptional = getReplacement(dto.getEmphasisType(), assWords);
+                            if (stringOptional.isPresent()) {
+                                stringBuilder.append(stringOptional.get());
+                                legends.add(new LegendEntryDTO.Builder().setOldWord(currentWord).setNewWord(stringOptional.get()).build());
+                            } else {
+                                stringBuilder.append(currentWord);
+                                legends.add(new LegendEntryDTO.Builder().setOldWord(currentWord).setNewWord(currentWord).setResult(ReplacementResultType.KEPT).build());
+                            }
                         } else {
                             stringBuilder.append(currentWord);
                         }
@@ -96,12 +105,35 @@ public class TransformationService {
         return result;
     }
 
-    private String getReplacement(EmphasisType emphasisType, List<Word> associationList) {
-        int index = 0;
-        if (emphasisType == EmphasisType.RANDOM) {
-            index = NumberUtil.getRandomNumber(0, associationList.size() - 1);
+    private Optional<String> getReplacement(EmphasisType emphasisType, List<Tuple> associationList) {
+        UUID id = null;
+        if (emphasisType == EmphasisType.RANDOMLY) {
+            int index = NumberUtil.getRandomNumber(0, associationList.size() - 1);
+            id = associationList.get(index).getUUID(0);
+        } else if(emphasisType == EmphasisType.STRONGER) {
+            List<Tuple> strongerWordsList = associationList.stream().filter(w -> w.getInteger(2) > 0).collect(Collectors.toList());
+            if (strongerWordsList.size() > 0) {
+                int index = NumberUtil.getRandomNumber(0, strongerWordsList.size() - 1);
+                id = strongerWordsList.get(index).getUUID(0);
+            } else {
+                return Optional.empty();
+            }
+        } else if(emphasisType == EmphasisType.WEAKER) {
+            List<Tuple> strongerWordsList = associationList.stream().filter(w -> w.getInteger(2) < 0).collect(Collectors.toList());
+            if (strongerWordsList.size() > 0) {
+                int index = NumberUtil.getRandomNumber(0, strongerWordsList.size() - 1);
+                id = strongerWordsList.get(index).getUUID(0);
+            } else {
+                return Optional.empty();
+            }
         }
-        return associationList.get(index).getValue();
+        Optional<Word> wordOptional = wordService.getById(id);
+        if (wordOptional.isPresent()){
+            return Optional.of(wordOptional.get().getValue());
+        } else {
+            return Optional.empty();
+        }
+
     }
 
 

@@ -41,7 +41,11 @@ public class WordService {
     }
 
     public Optional<Word> getById(String id) {
-        return repository.findById(UUID.fromString(id));
+        return getById(UUID.fromString(id));
+    }
+
+    public Optional<Word> getById(UUID id) {
+        return repository.findById(id);
     }
 
     public Optional<Word> getByWord(String wordValue, boolean incRelated) {

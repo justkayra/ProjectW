@@ -25,7 +25,7 @@ public class TransformationRequestDTO {
 
     public static class Builder {
         private String sourceText;
-        private EmphasisType emphasis = EmphasisType.RANDOM;
+        private EmphasisType emphasis = EmphasisType.RANDOMLY;
 
         public Builder setSourceText(String sourceText) {
             this.sourceText = sourceText;
